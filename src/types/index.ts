@@ -14,3 +14,9 @@ export interface GitHubConfig {
 	baseRef: string;
 	headRef: string;
 }
+
+export interface PullRequestContext {
+	owner: string;
+	repo: string;
+	prNumber: number;
+}
