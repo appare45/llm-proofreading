@@ -46,7 +46,6 @@ const added_lines = patch.files
 				linumber: line.lineNumber,
 			})),
 	);
-console.log(added_lines);
 
 const client = new CopilotClient();
 
