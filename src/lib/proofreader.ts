@@ -15,24 +15,23 @@ export const proofreadTargets = async (
 	const { client, session } = await createProofreadingClient();
 
 	try {
-		const results = await Promise.all(
-			targets.map(async (fileLines) => {
-				return await Promise.all(
-					fileLines.map(async (line) => {
-						const result = await proofreadLine(session, line.line);
-						return {
-							filename: line.filename,
-							line: line.line,
-							linenumber: line.linenumber,
-							corrected: result.corrected,
-							reason: result.reason,
-						};
-					}),
-				);
-			}),
-		);
+		const results: ProofreadResult[] = [];
 
-		return results.flat();
+		// Process files and lines sequentially to avoid overwhelming the Copilot session
+		for (const fileLines of targets) {
+			for (const line of fileLines) {
+				const result = await proofreadLine(session, line.line);
+				results.push({
+					filename: line.filename,
+					line: line.line,
+					linenumber: line.linenumber,
+					corrected: result.corrected,
+					reason: result.reason,
+				});
+			}
+		}
+
+		return results;
 	} finally {
 		console.log("Cleaning up Copilot session and client");
 		// Clean up the session and client to prevent memory leaks
