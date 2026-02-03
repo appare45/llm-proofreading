@@ -46,7 +46,9 @@ export const proofreadLine = async (
 	line: string,
 ): Promise<{ corrected: string; reason: string; }> => {
 	try {
-		const result = await session.sendAndWait({ prompt: line }, 5 * 60 * 1000);
+		console.log(`Proofreading line: ${line}`);
+		const result = await session.sendAndWait({ prompt: line }, 10 * 60 * 1000);
+		console.log(`Received response: ${JSON.stringify(result)}`);
 		const content = result?.data.content ?? "";
 		const parsed = JSON.parse(content);
 		return {
