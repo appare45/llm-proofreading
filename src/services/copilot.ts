@@ -1,18 +1,6 @@
 import { CopilotClient } from "@github/copilot-sdk";
 
-export const createProofreadingClient = (): CopilotClient => {
-	return new CopilotClient();
-};
-
-export const proofreadLine = async (
-	client: CopilotClient,
-	line: string,
-): Promise<{ corrected: string; reason: string }> => {
-	const session = await client.createSession({
-		model: "gpt-4.1",
-		systemMessage: {
-			mode: "append",
-			content: `あなたは日本語の技術文書の校正専門家です。
+const SYSTEM_MESSAGE = `あなたは日本語の技術文書の校正専門家です。
 入力される文章はTypstによって書かれた文章の一部です。
 文章から以下のような誤りを見つけ、修正理由とともにJSON形式で返してください。
 
@@ -38,10 +26,25 @@ export const proofreadLine = async (
 
 必ずJSON形式で返してください。修正理由は1〜2文で簡潔に記述してください。
 修正内容が自明な場合（単純な誤字など）はreasonを空文字列にしてください。
-`,
+`;
+
+export const createProofreadingClient = async () => {
+	const client = new CopilotClient();
+	const session = await client.createSession({
+		model: "gpt-4.1",
+		systemMessage: {
+			mode: "append",
+			content: SYSTEM_MESSAGE,
 		},
 	});
 
+	return { client, session };
+};
+
+export const proofreadLine = async (
+	session: Awaited<ReturnType<CopilotClient["createSession"]>>,
+	line: string,
+): Promise<{ corrected: string; reason: string }> => {
 	const result = await session.sendAndWait({ prompt: line });
 	const content = result?.data.content ?? "";
 

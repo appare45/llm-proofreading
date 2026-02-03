@@ -13,24 +13,30 @@ export const proofreadPatch = async (
 	patchContent: string,
 ): Promise<ProofreadResult[]> => {
 	const addedLines = extractAddedLines(patchContent);
-	const copilotClient = createProofreadingClient();
+	const { client, session } = await createProofreadingClient();
 
-	const results = await Promise.all(
-		addedLines.map(async (fileLines) => {
-			return await Promise.all(
-				fileLines.map(async (line) => {
-					const result = await proofreadLine(copilotClient, line.line);
-					return {
-						filename: line.filename,
-						line: line.line,
-						linenumber: line.linenumber,
-						corrected: result.corrected,
-						reason: result.reason,
-					};
-				}),
-			);
-		}),
-	);
+	try {
+		const results = await Promise.all(
+			addedLines.map(async (fileLines) => {
+				return await Promise.all(
+					fileLines.map(async (line) => {
+						const result = await proofreadLine(session, line.line);
+						return {
+							filename: line.filename,
+							line: line.line,
+							linenumber: line.linenumber,
+							corrected: result.corrected,
+							reason: result.reason,
+						};
+					}),
+				);
+			}),
+		);
 
-	return results.flat();
+		return results.flat();
+	} finally {
+		// Clean up the session and client to prevent memory leaks
+		await session.destroy();
+		await client.stop();
+	}
 };
