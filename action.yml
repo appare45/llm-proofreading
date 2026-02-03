@@ -20,7 +20,7 @@ runs:
 
     - name: Install dependencies
       shell: bash
-      run: bun install --frozen-lockfile
+      run: bun install --production --frozen-lockfile
       working-directory: ${{ github.action_path }}
 
     - name: Generate patch file from the Pull Request
