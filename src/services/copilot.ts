@@ -28,17 +28,20 @@ const SYSTEM_MESSAGE = `あなたは日本語の技術文書の校正専門家�
 修正内容が自明な場合（単純な誤字など）はreasonを空文字列にしてください。
 `;
 
-export const createProofreadingClient = async () => {
-	const client = new CopilotClient();
-	const session = await client.createSession({
+export const createProofreadingClient = () => {
+	return new CopilotClient();
+};
+
+export const createProofreadingSession = async (
+	client: CopilotClient,
+) => {
+	return await client.createSession({
 		model: "gpt-4.1",
 		systemMessage: {
 			mode: "append",
 			content: SYSTEM_MESSAGE,
 		},
 	});
-
-	return { client, session };
 };
 
 export const proofreadLine = async (

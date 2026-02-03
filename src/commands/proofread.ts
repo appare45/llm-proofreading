@@ -1,4 +1,5 @@
 import { proofreadTargets } from "../lib/proofreader.ts";
+import { createProofreadingClient } from "../services/copilot.ts";
 import type { AddedLine } from "../types/index.ts";
 
 export interface ProofreadCommandOptions {
@@ -79,22 +80,31 @@ export const proofreadCommand = async (
 	// Validate input structure
 	const targets = validateTargets(data);
 
-	// Proofread all targets
-	const results = await proofreadTargets(targets);
+	// Create a single Copilot client for all proofreading requests
+	const client = createProofreadingClient();
 
-	// Report summary
-	const corrections = results.filter((r) => r.corrected !== r.line);
-	console.error(
-		`Found ${corrections.length} corrections out of ${results.length} lines`,
-	);
+	try {
+		// Proofread all targets
+		const results = await proofreadTargets(targets, client);
 
-	// Output results
-	const json = JSON.stringify(results, null, 2);
+		// Report summary
+		const corrections = results.filter((r) => r.corrected !== r.line);
+		console.error(
+			`Found ${corrections.length} corrections out of ${results.length} lines`,
+		);
 
-	if (options.output) {
-		await Bun.write(options.output, json);
-		console.error(`Output written to ${options.output}`);
-	} else {
-		console.log(json);
+		// Output results
+		const json = JSON.stringify(results, null, 2);
+
+		if (options.output) {
+			await Bun.write(options.output, json);
+			console.error(`Output written to ${options.output}`);
+		} else {
+			console.log(json);
+		}
+	} finally {
+		// Clean up the client
+		console.error("Cleaning up Copilot client");
+		await client.stop();
 	}
 };

@@ -1,18 +1,22 @@
+import type { CopilotClient } from "@github/copilot-sdk";
 import {
-	createProofreadingClient,
+	createProofreadingSession,
 	proofreadLine,
 } from "../services/copilot.ts";
 import type { AddedLine, ProofreadResult } from "../types/index.ts";
 
 /**
  * Proofread extracted targets using Copilot API
- * Creates a single Copilot client/session for all proofreading requests
- * CRITICAL: Always cleans up resources in finally block to prevent memory leaks
+ * Accepts a pre-created client to avoid recreating it on every call
+ * Creates a single session for all proofreading requests
+ * CRITICAL: Always cleans up session in finally block to prevent memory leaks
+ * NOTE: Client cleanup is the responsibility of the caller
  */
 export const proofreadTargets = async (
 	targets: AddedLine[][],
+	client: CopilotClient,
 ): Promise<ProofreadResult[]> => {
-	const { client, session } = await createProofreadingClient();
+	const session = await createProofreadingSession(client);
 
 	try {
 		const results: ProofreadResult[] = [];
@@ -33,9 +37,8 @@ export const proofreadTargets = async (
 
 		return results;
 	} finally {
-		console.log("Cleaning up Copilot session and client");
-		// Clean up the session and client to prevent memory leaks
+		console.log("Cleaning up Copilot session");
+		// Clean up the session to prevent memory leaks
 		await session.destroy();
-		await client.stop();
 	}
 };
