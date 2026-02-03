@@ -8,15 +8,14 @@ export interface ProofreadResult extends AddedLine {
 	corrected: string;
 }
 
-export interface GitHubConfig {
-	owner: string;
-	repository: string;
-	baseRef: string;
-	headRef: string;
-}
-
 export interface PullRequestContext {
 	owner: string;
 	repo: string;
 	prNumber: number;
+}
+
+export interface ReviewComment {
+	path: string;
+	line: number;
+	body: string;
 }
