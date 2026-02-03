@@ -1,0 +1,47 @@
+name: 'LLM Proofreading'
+description: 'Proofread pull request changes using GitHub Copilot'
+author: 'appare45'
+
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
+inputs:
+  github-token:
+    description: 'GitHub token for API access'
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v2
+
+    - name: Install dependencies
+      shell: bash
+      run: bun install --frozen-lockfile
+      working-directory: ${{ github.action_path }}
+
+    - name: Generate patch file from the Pull Request
+      shell: bash
+      run: gh pr diff ${{ github.event.pull_request.number }} -R ${{ github.repository }} > ${{ github.action_path }}/pr.patch
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+
+    - name: Run review
+      shell: bash
+      run: bun run src/index.ts review pr.patch -o reviews.json
+      working-directory: ${{ github.action_path }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+
+    - name: Submit reviews
+      shell: bash
+      run: bun run src/index.ts submit-reviews reviews.json --pr ${{ github.event.pull_request.number }}
+      working-directory: ${{ github.action_path }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_SHA: ${{ github.event.pull_request.head.sha }}
