@@ -2,17 +2,27 @@
 // README at: https://github.com/marcosgomesneto/bun-devcontainers/tree/main/src/basic-bun
 {
 	"name": "Bun",
-	"dockerFile": "Dockerfile",
-	// Configure tool-specific properties.
+	"image": "oven/bun:slim",
 	"customizations": {
-		// Configure properties specific to VS Code.
 		"vscode": {
-			// Add the IDs of extensions you want installed when the container is created.
-			"extensions": ["oven.bun-vscode"]
+			"extensions": [
+				"oven.bun-vscode",
+				"biomejs.biome"
+			]
 		}
 	},
 	"features": {
-		"ghcr.io/devcontainers/features/copilot-cli:1": {}
+		"ghcr.io/devcontainers/features/common-utils:2.5.6": {
+			"username": "vscode",
+			"installZsh": true
+		},
 	},
-	"runArgs": ["--env-file", ".devcontainer/.env"]
+	"containerEnv": {
+		"LANG": "en_US.UTF-8"
+	},
+	"remoteUser": "vscode",
+	"runArgs": [
+		"--env-file",
+		".devcontainer/.env"
+	]
 }

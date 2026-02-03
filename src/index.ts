@@ -1,90 +1,95 @@
-import { proofreadPullRequest } from "./lib/proofreader.ts";
-import { getEnvOrError } from "./utils/env.ts";
 import { parseArgs } from "node:util";
+
 import { extractAddedLines } from "./services/patch.ts";
 import { createProofreadingClient, proofreadLine } from "./services/copilot.ts";
 import { createGitHubClient, createReview } from "./services/github.ts";
-import type { AddedLine } from "./types/index.ts";
+import { getEnvOrError } from "./utils/env.ts";
 
-const { values, positionals } = parseArgs({
+const { positionals, values } = parseArgs({
 	args: Bun.argv.slice(2),
 	options: {
-		// Generate a block of patch content for testing
-		patch: {
+		output: {
 			type: "string",
-		},
-
-		// Blocks
-		blocks: {
-			type: "string",
-		},
-
-		// Submit review comments from the json file
-		reviews: {
-			type: "string",
+			short: "o",
 		},
 	},
 	allowPositionals: true,
 });
-const subcommand = positionals[0] || "proofread";
+const subcommand = positionals[0];
+const inputFile = positionals[1];
+const outputFile = values.output;
+
+if (!subcommand) {
+	throw new Error("Please provide a subcommand. Available subcommands: review, submit-reviews");
+}
 
 switch (subcommand) {
-	case "generate-blocks": {
-		if (!values.patch) {
-			throw new Error("Please provide a patch file with --patch");
+	case "review": {
+		if (!inputFile) {
+			throw new Error("Please provide a patch file as an argument");
 		}
-		const patchContent = await Bun.file(values.patch).text();
-		const blocks = extractAddedLines(patchContent);
-		console.log(JSON.stringify(blocks, null, 2));
-		break;
-	}
-	case "review-from-file": {
-		if (!values.blocks) {
-			throw new Error("Please provide a blocks file with --blocks");
-		}
-		const blocksContent = await Bun.file(values.blocks).json();
-		const addedLines = blocksContent as AddedLine[][];
-		const copilotClient = createProofreadingClient();
 
-		// Proofread all lines (same logic as proofreadPullRequest)
+		// Extract blocks from patch
+		const patchContent = await Bun.file(inputFile).text();
+		const addedLines = extractAddedLines(patchContent);
+
+		// Proofread all lines
+		const copilotClient = createProofreadingClient();
 		const results = await Promise.all(
 			addedLines.map(async (fileLines) => {
 				return await Promise.all(
 					fileLines.map(async (line) => {
 						const corrected = await proofreadLine(copilotClient, line.line);
 						return {
+							original: line.line,
 							corrected,
-							...line,
+							filename: line.filename,
+							linenumber: line.linenumber,
 						};
 					}),
 				);
 			}),
 		);
 
-		// Format as review comments
-		const commentsToSubmit = results
-			.flat()
-			.filter((file) => file.corrected !== file.line)
-			.map((fileResults) => ({
-				path: fileResults.filename,
-				line: fileResults.linenumber,
-				body: `\`\`\`suggestion
-${fileResults.corrected}
-\`\`\``,
-			}));
+		const flatResults = results.flat();
+		const corrections = flatResults.filter((file) => file.corrected !== file.original);
 
-		console.log(`Found ${commentsToSubmit.length} corrections to submit`);
-		console.log(JSON.stringify(commentsToSubmit, null, 2));
+		console.error(`Found ${corrections.length} corrections out of ${flatResults.length} lines`);
+		const json = JSON.stringify(flatResults, null, 2);
+
+		if (outputFile) {
+			await Bun.write(outputFile, json);
+			console.error(`Output written to ${outputFile}`);
+		} else {
+			console.log(json);
+		}
 		break;
 	}
 	case "submit-reviews": {
-		if (!values.reviews) {
-			throw new Error("Please provide a reviews file with --reviews");
+		if (!inputFile) {
+			throw new Error("Please provide a reviews file as an argument");
 		}
-		const reviewsContent = await Bun.file(values.reviews).json();
-		const { owner, repo, prNumber, commitSha, comments } = reviewsContent;
+		const reviewResults = await Bun.file(inputFile).json();
+
+		// Filter only lines that have corrections and format as suggestions
+		const comments = reviewResults
+			.filter((result: { original: string; corrected: string; }) => result.corrected !== result.original)
+			.map((result: { filename: string; linenumber: number; corrected: string; }) => ({
+				path: result.filename,
+				line: result.linenumber,
+				body: `\`\`\`suggestion
+${result.corrected}
+\`\`\``,
+			}));
+
+		console.error(`Submitting ${comments.length} review comments`);
 
 		const github_token = getEnvOrError("GITHUB_TOKEN");
+		const owner = getEnvOrError("GITHUB_REPOSITORY_OWNER");
+		const repo = getEnvOrError("GITHUB_REPOSITORY").slice(owner.length + 1);
+		const prNumber = Number.parseInt(getEnvOrError("GITHUB_PR_NUMBER"));
+		const commitSha = getEnvOrError("GITHUB_SHA");
+
 		const octokit = createGitHubClient(github_token);
 
 		await createReview(
@@ -94,33 +99,11 @@ ${fileResults.corrected}
 			comments,
 		);
 
-		console.log("Review submitted successfully");
-		break;
-	}
-	case "proofread": {
-		const github_token = getEnvOrError("GITHUB_TOKEN");
-		const owner = getEnvOrError("GITHUB_REPOSITORY_OWNER");
-		const repository = getEnvOrError("GITHUB_REPOSITORY").slice(owner.length + 1);
-		const base_ref = getEnvOrError("GITHUB_BASE_REF");
-		const head_ref = getEnvOrError("GITHUB_HEAD_REF");
-		const results = await proofreadPullRequest(
-			{
-				owner,
-				repository,
-				baseRef: base_ref,
-				headRef: head_ref,
-			},
-			github_token,
-		);
-
-		for (const fileResults of results) {
-			console.log(fileResults);
-		}
-		console.log("Done");
+		console.error("Review submitted successfully");
 		break;
 	}
 	default: {
-		throw new Error(`Unknown subcommand: ${subcommand}. Available subcommands: proofread, generate-blocks, review-from-file, submit-reviews`);
+		throw new Error(`Unknown subcommand: ${subcommand}. Available subcommands: review, submit-reviews`);
 	}
 }
 
