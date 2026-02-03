@@ -29,9 +29,14 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.github-token }}
 
-    - name: Run review
+    - name: Extract targets
       shell: bash
-      run: bun run src/index.ts review pr.patch -o reviews.json
+      run: bun run src/index.ts extract-targets pr.patch -o targets.json
+      working-directory: ${{ github.action_path }}
+
+    - name: Proofread
+      shell: bash
+      run: bun run src/index.ts proofread targets.json -o reviews.json
       working-directory: ${{ github.action_path }}
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}

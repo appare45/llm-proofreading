@@ -1,6 +1,7 @@
 import { parseArgs } from "node:util";
 
-import { reviewCommand } from "./commands/review.ts";
+import { extractTargetsCommand } from "./commands/extract-targets.ts";
+import { proofreadCommand } from "./commands/proofread.ts";
 import { submitReviewsCommand } from "./commands/submit-reviews.ts";
 
 const { positionals, values } = parseArgs({
@@ -21,15 +22,22 @@ const inputFile = positionals[1];
 const outputFile = values.output;
 
 if (!subcommand) {
-	throw new Error("Please provide a subcommand. Available subcommands: review, submit-reviews");
+	throw new Error("Please provide a subcommand. Available subcommands: extract-targets, proofread, submit-reviews");
 }
 
 switch (subcommand) {
-	case "review": {
+	case "extract-targets": {
 		if (!inputFile) {
-			throw new Error("Please provide an input file for the review subcommand");
+			throw new Error("Please provide an input file for the extract-targets subcommand");
 		}
-		await reviewCommand(inputFile, { output: outputFile });
+		await extractTargetsCommand(inputFile, { output: outputFile });
+		break;
+	}
+	case "proofread": {
+		if (!inputFile) {
+			throw new Error("Please provide an input file for the proofread subcommand");
+		}
+		await proofreadCommand(inputFile, { output: outputFile });
 		break;
 	}
 	case "submit-reviews": {
@@ -41,7 +49,7 @@ switch (subcommand) {
 	}
 	default: {
 		throw new Error(
-			`Unknown subcommand: ${subcommand}. Available subcommands: review, submit-reviews`,
+			`Unknown subcommand: ${subcommand}. Available subcommands: extract-targets, proofread, submit-reviews`,
 		);
 	}
 }

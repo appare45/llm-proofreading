@@ -2,22 +2,21 @@ import {
 	createProofreadingClient,
 	proofreadLine,
 } from "../services/copilot.ts";
-import { extractAddedLines } from "../services/patch.ts";
-import type { ProofreadResult } from "../types/index.ts";
+import type { AddedLine, ProofreadResult } from "../types/index.ts";
 
 /**
- * Proofread lines from a patch content
- * Pure business logic function for easy testing
+ * Proofread extracted targets using Copilot API
+ * Creates a single Copilot client/session for all proofreading requests
+ * CRITICAL: Always cleans up resources in finally block to prevent memory leaks
  */
-export const proofreadPatch = async (
-	patchContent: string,
+export const proofreadTargets = async (
+	targets: AddedLine[][],
 ): Promise<ProofreadResult[]> => {
-	const addedLines = extractAddedLines(patchContent);
 	const { client, session } = await createProofreadingClient();
 
 	try {
 		const results = await Promise.all(
-			addedLines.map(async (fileLines) => {
+			targets.map(async (fileLines) => {
 				return await Promise.all(
 					fileLines.map(async (line) => {
 						const result = await proofreadLine(session, line.line);
