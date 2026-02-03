@@ -44,11 +44,10 @@ export const createProofreadingClient = async () => {
 export const proofreadLine = async (
 	session: Awaited<ReturnType<CopilotClient["createSession"]>>,
 	line: string,
-): Promise<{ corrected: string; reason: string }> => {
-	const result = await session.sendAndWait({ prompt: line });
-	const content = result?.data.content ?? "";
-
+): Promise<{ corrected: string; reason: string; }> => {
 	try {
+		const result = await session.sendAndWait({ prompt: line }, 5 * 60 * 1000);
+		const content = result?.data.content ?? "";
 		const parsed = JSON.parse(content);
 		return {
 			corrected: parsed.corrected || line,
