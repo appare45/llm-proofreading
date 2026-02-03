@@ -14,7 +14,7 @@ import type { GitHubConfig } from "../types/index.ts";
 export const proofreadPullRequest = async (
 	config: GitHubConfig,
 	githubToken: string,
-): Promise<void[]> => {
+): Promise<undefined[]> => {
 	const octokit = createGitHubClient(githubToken);
 
 	const pr = await getPullRequest(octokit, config);
