@@ -12,6 +12,9 @@ const { positionals, values } = parseArgs({
 			type: "string",
 			short: "o",
 		},
+		pr: {
+			type: "string",
+		},
 	},
 	allowPositionals: true,
 });
@@ -69,6 +72,10 @@ switch (subcommand) {
 		if (!inputFile) {
 			throw new Error("Please provide a reviews file as an argument");
 		}
+		if (!values.pr) {
+			throw new Error("Please provide a PR number with --pr");
+		}
+
 		const reviewResults = await Bun.file(inputFile).json();
 
 		// Filter only lines that have corrections and format as suggestions
@@ -87,7 +94,7 @@ ${result.corrected}
 		const github_token = getEnvOrError("GITHUB_TOKEN");
 		const owner = getEnvOrError("GITHUB_REPOSITORY_OWNER");
 		const repo = getEnvOrError("GITHUB_REPOSITORY").slice(owner.length + 1);
-		const prNumber = Number.parseInt(getEnvOrError("GITHUB_PR_NUMBER"));
+		const prNumber = Number.parseInt(values.pr, 10);
 		const commitSha = getEnvOrError("GITHUB_SHA");
 
 		const octokit = createGitHubClient(github_token);
