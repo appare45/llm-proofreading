@@ -6,7 +6,7 @@ export const extractAddedLines = (diffContent: string): AddedLine[][] => {
 	if (!patch) throw new Error("Failed to parse patch file");
 
 	return patch.files
-		.filter((file) => !file.deleted)
+		.filter((file) => !file.deleted && file.afterName.endsWith(".typ"))
 		.map((file) =>
 			file.modifiedLines
 				.filter((line) => line.added && line.line)

@@ -23,6 +23,11 @@ runs:
       run: bun install --production --frozen-lockfile
       working-directory: ${{ github.action_path }}
 
+    - name: Install Copilot
+      shell: bash
+      run: bun install -g @github/copilot
+      working-directory: ${{ github.action_path }}
+
     - name: Generate patch file from the Pull Request
       shell: bash
       run: gh pr diff ${{ github.event.pull_request.number }} -R ${{ github.repository }} > ${{ github.action_path }}/pr.patch

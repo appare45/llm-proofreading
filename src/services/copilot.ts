@@ -55,7 +55,8 @@ export const proofreadLine = async (
 			corrected: parsed.corrected || line,
 			reason: parsed.reason || "",
 		};
-	} catch {
+	} catch (error) {
+		console.error(`Error proofreading line: ${line}`, error);
 		return {
 			corrected: line,
 			reason: "",

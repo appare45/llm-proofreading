@@ -34,6 +34,7 @@ export const proofreadTargets = async (
 
 		return results.flat();
 	} finally {
+		console.log("Cleaning up Copilot session and client");
 		// Clean up the session and client to prevent memory leaks
 		await session.destroy();
 		await client.stop();
