@@ -6,6 +6,7 @@ export interface AddedLine {
 
 export interface ProofreadResult extends AddedLine {
 	corrected: string;
+	reason: string;
 }
 
 export interface PullRequestContext {

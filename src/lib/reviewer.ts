@@ -14,13 +14,16 @@ export const createReviewComments = (
 ): ReviewComment[] => {
 	return results
 		.filter((result) => result.corrected !== result.line)
-		.map((result) => ({
-			path: result.filename,
-			line: result.linenumber,
-			body: `\`\`\`suggestion
+		.map((result) => {
+			const reasonText = result.reason ? `${result.reason}\n\n` : "";
+			return {
+				path: result.filename,
+				line: result.linenumber,
+				body: `${reasonText}\`\`\`suggestion
 ${result.corrected}
 \`\`\``,
-		}));
+			};
+		});
 };
 
 /**

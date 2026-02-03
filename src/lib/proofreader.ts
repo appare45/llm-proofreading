@@ -19,12 +19,13 @@ export const proofreadPatch = async (
 		addedLines.map(async (fileLines) => {
 			return await Promise.all(
 				fileLines.map(async (line) => {
-					const corrected = await proofreadLine(copilotClient, line.line);
+					const result = await proofreadLine(copilotClient, line.line);
 					return {
 						filename: line.filename,
 						line: line.line,
 						linenumber: line.linenumber,
-						corrected,
+						corrected: result.corrected,
+						reason: result.reason,
 					};
 				}),
 			);
